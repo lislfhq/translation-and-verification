@@ -1,8 +1,0 @@
-lex.yy.c
-
-funny_lexer
-funny_lexer.exe
-*.o
-
-.DS_Store
-*.log

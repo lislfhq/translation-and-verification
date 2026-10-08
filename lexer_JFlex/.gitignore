@@ -1,0 +1,11 @@
+.DS_Store
+
+src/FunnyLexer.java
+src/FunnyLexer.java~
+
+src/*.class
+*.class
+
+.idea/
+*.iml
+*.log
