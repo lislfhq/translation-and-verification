@@ -1,0 +1,109 @@
+package parser;
+
+import java_cup.runtime.*;
+import ast.*;
+import java.util.*;
+
+parser code {:
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Синтаксическая ошибка");
+        if (info instanceof Symbol) {
+            Symbol s = (Symbol) info;
+            m.append(" [").append(s.left).append(":").append(s.right).append("]");
+            if (s.value != null) {
+                m.append(" рядом с '").append(s.value).append("'");
+            }
+        }
+        m.append(": ").append(message);
+        System.err.println(m);
+    }
+
+    public void report_fatal_error(String message, Object info) throws Exception {
+        report_error(message, info);
+        throw new Exception("Невосстановимая ошибка парсинга");
+    }
+:};
+
+/* терминалы (токаны из лексера) */
+terminal KW_FUNCTION, KW_RETURNS, KW_INT, KW_IF, KW_ELSE, KW_WHILE;
+terminal KW_REQUIRES, KW_ENSURES, KW_ASSERT, KW_ASSUME;
+terminal KW_INVARIANT, KW_LENGTH, KW_USES;
+
+terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET;
+terminal SEMI, COLON, COMMA, ASSIGN;
+terminal PLUS, MINUS, STAR, SLASH, PERCENT;
+terminal EQ, NEQ, LT, LEQ, GT, GEQ;
+
+terminal String ID;
+terminal Integer INT_LIT;
+
+/* нетерминалы */
+non terminal ASTNode program, function_decl, stmt, expr;
+non terminal List<ASTNode> stmt_list, opt_stmt_list;
+
+/* приоритеты и ассоциативность операторов */
+precedence right ASSIGN;
+precedence left EQ, NEQ, LT, LEQ, GT, GEQ;
+precedence left PLUS, MINUS;
+precedence left STAR, SLASH, PERCENT;
+
+/* стартовый символ */
+start with program;
+
+/* правила грамматики */
+
+program ::= function_decl:f {: RESULT = f; :}
+        ;
+
+function_decl ::= KW_FUNCTION ID:name LPAREN RPAREN KW_RETURNS KW_INT LBRACE opt_stmt_list:body RBRACE
+                  {: RESULT = new FunctionDeclNode(name, body, nameleft, nameright); :}
+                ;
+
+opt_stmt_list ::= stmt_list:sl {: RESULT = sl; :}
+                | /* пусто */   {: RESULT = new ArrayList<ASTNode>(); :}
+                ;
+
+stmt_list ::= stmt_list:sl stmt:s
+              {: sl.add(s); RESULT = sl; :}
+            | stmt:s
+              {: List<ASTNode> list = new ArrayList<>(); list.add(s); RESULT = list; :}
+            ;
+
+stmt ::= KW_INT ID:id ASSIGN expr:e SEMI
+         {: RESULT = new VarDeclNode(id, e, idleft, idright); :}
+       | ID:id ASSIGN expr:e SEMI
+         {: RESULT = new AssignNode(id, e, idleft, idright); :}
+       | KW_REQUIRES expr:e SEMI
+         {: RESULT = new RequiresNode(e, eleft, eright); :}
+       | KW_ENSURES expr:e SEMI
+         {: RESULT = new EnsuresNode(e, eleft, eright); :}
+       | KW_ASSERT expr:e SEMI
+         {: RESULT = new AssertNode(e, eleft, eright); :}
+       | KW_ASSUME expr:e SEMI
+         {: RESULT = new AssumeNode(e, eleft, eright); :}
+       | KW_RETURNS expr:e SEMI
+         {: RESULT = new ReturnNode(e, eleft, eright); :}
+       | ID:id LBRACKET expr:idx RBRACKET ASSIGN expr:e SEMI
+         {: RESULT = new ArrayAssignNode(id, idx, e, idleft, idright); :}
+       | KW_IF LPAREN expr:cond RPAREN LBRACE opt_stmt_list:then_b RBRACE KW_ELSE LBRACE opt_stmt_list:else_b RBRACE
+         {: RESULT = new IfNode(cond, then_b, else_b, condleft, condright); :}
+       | KW_WHILE LPAREN expr:cond RPAREN LBRACE opt_stmt_list:body RBRACE
+         {: RESULT = new WhileNode(cond, body, condleft, condright); :}
+       ;
+
+expr ::= expr:e1 PLUS expr:e2      {: RESULT = new BinaryOpNode("+", e1, e2, e1left, e1right); :}
+       | expr:e1 MINUS expr:e2     {: RESULT = new BinaryOpNode("-", e1, e2, e1left, e1right); :}
+       | expr:e1 STAR expr:e2      {: RESULT = new BinaryOpNode("*", e1, e2, e1left, e1right); :}
+       | expr:e1 SLASH expr:e2     {: RESULT = new BinaryOpNode("/", e1, e2, e1left, e1right); :}
+       | expr:e1 PERCENT expr:e2   {: RESULT = new BinaryOpNode("%", e1, e2, e1left, e1right); :}
+       | expr:e1 EQ expr:e2        {: RESULT = new BinaryOpNode("==", e1, e2, e1left, e1right); :}
+       | expr:e1 NEQ expr:e2       {: RESULT = new BinaryOpNode("!=", e1, e2, e1left, e1right); :}
+       | expr:e1 LT expr:e2        {: RESULT = new BinaryOpNode("<", e1, e2, e1left, e1right); :}
+       | expr:e1 LEQ expr:e2       {: RESULT = new BinaryOpNode("<=", e1, e2, e1left, e1right); :}
+       | expr:e1 GT expr:e2        {: RESULT = new BinaryOpNode(">", e1, e2, e1left, e1right); :}
+       | expr:e1 GEQ expr:e2       {: RESULT = new BinaryOpNode(">=", e1, e2, e1left, e1right); :}
+       | LPAREN expr:e RPAREN      {: RESULT = e; :}
+       | INT_LIT:val               {: RESULT = new IntLitNode(val, valleft, valright); :}
+       | ID:id                     {: RESULT = new VarNode(id, idleft, idright); :}
+       | ID:id LBRACKET expr:idx RBRACKET {: RESULT = new ArrayAccessNode(id, idx, idleft, idright); :}
+       ;

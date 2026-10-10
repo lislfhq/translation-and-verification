@@ -1,0 +1,5 @@
+function main() returns int {
+    int x = 42;
+    returns x;
+}
+extra_tokens_here

@@ -1,0 +1,20 @@
+function main() returns int {
+    int x = 42;
+    int y_val = 0;
+
+    requires x >= 0;
+    ensures y_val <= 100;
+
+    if (x == 42) {
+        y_val = x + 10 * 2;
+    } else {
+        while (y_val != 0) {
+            y_val = y_val - 1;
+        }
+    }
+
+    assert y_val >= 0;
+    assume x > y_val;
+
+    returns y_val;
+}

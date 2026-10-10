@@ -1,0 +1,4 @@
+function main() returns int {
+    int x = 42 === 10;
+    returns x;
+}

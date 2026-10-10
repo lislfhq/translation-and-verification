@@ -1,0 +1,47 @@
+FunctionDeclNode: main
+  Body:
+    VarDecl: x
+      IntLit (42)
+    VarDecl: y_val
+      IntLit (0)
+    Requires:
+      BinaryOp (>=)
+        Var (x)
+        IntLit (0)
+    Ensures:
+      BinaryOp (<=)
+        Var (y_val)
+        IntLit (100)
+    If:
+      Condition:
+        BinaryOp (==)
+          Var (x)
+          IntLit (42)
+      ThenBody:
+        Assign: y_val
+          BinaryOp (+)
+            Var (x)
+            BinaryOp (*)
+              IntLit (10)
+              IntLit (2)
+      ElseBody:
+        While:
+          Condition:
+            BinaryOp (!=)
+              Var (y_val)
+              IntLit (0)
+          Body:
+            Assign: y_val
+              BinaryOp (-)
+                Var (y_val)
+                IntLit (1)
+    Assert:
+      BinaryOp (>=)
+        Var (y_val)
+        IntLit (0)
+    Assume:
+      BinaryOp (>)
+        Var (x)
+        Var (y_val)
+    Return:
+      Var (y_val)

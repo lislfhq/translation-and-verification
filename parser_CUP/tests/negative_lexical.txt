@@ -1,0 +1,4 @@
+function main() returns int {
+    int 1bad_var = 5;
+    returns 0;
+}

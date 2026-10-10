@@ -1,0 +1,6 @@
+function main() returns int {
+    if (x == 42 {
+        x = 0;
+    }
+    returns x;
+}

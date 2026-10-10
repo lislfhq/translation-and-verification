@@ -1,0 +1,69 @@
+Грамматика языка funny
+
+стартовый символ:
+start with program;
+
+терминалы:
+KW_FUNCTION, KW_RETURNS, KW_INT, KW_IF, KW_ELSE, KW_WHILE
+KW_REQUIRES, KW_ENSURES, KW_ASSERT, KW_ASSUME
+KW_INVARIANT, KW_LENGTH, KW_USES
+LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET
+SEMI, COLON, COMMA, ASSIGN
+PLUS, MINUS, STAR, SLASH, PERCENT
+EQ, NEQ, LT, LEQ, GT, GEQ
+ID, INT_LIT
+
+нетерминалы:
+program, function_decl, stmt, expr
+stmt_list, opt_stmt_list
+
+приоритеты и ассоциативность операторов:
+precedence right ASSIGN;
+precedence left EQ, NEQ, LT, LEQ, GT, GEQ;
+precedence left PLUS, MINUS;
+precedence left STAR, SLASH, PERCENT;
+
+правила грамматики:
+
+program ::= function_decl
+        ;
+
+function_decl ::= KW_FUNCTION ID LPAREN RPAREN KW_RETURNS KW_INT LBRACE opt_stmt_list RBRACE
+                ;
+
+opt_stmt_list ::= stmt_list
+                | /* пусто */
+                ;
+
+stmt_list ::= stmt_list stmt
+            | stmt
+            ;
+
+stmt ::= KW_INT ID ASSIGN expr SEMI
+       | ID ASSIGN expr SEMI
+       | KW_REQUIRES expr SEMI
+       | KW_ENSURES expr SEMI
+       | KW_ASSERT expr SEMI
+       | KW_ASSUME expr SEMI
+       | KW_RETURNS expr SEMI
+       | ID LBRACKET expr RBRACKET ASSIGN expr SEMI
+       | KW_IF LPAREN expr RPAREN LBRACE opt_stmt_list RBRACE KW_ELSE LBRACE opt_stmt_list RBRACE
+       | KW_WHILE LPAREN expr RPAREN LBRACE opt_stmt_list RBRACE
+       ;
+
+expr ::= expr PLUS expr
+       | expr MINUS expr
+       | expr STAR expr
+       | expr SLASH expr
+       | expr PERCENT expr
+       | expr EQ expr
+       | expr NEQ expr
+       | expr LT expr
+       | expr LEQ expr
+       | expr GT expr
+       | expr GEQ expr
+       | LPAREN expr RPAREN
+       | INT_LIT
+       | ID
+       | ID LBRACKET expr RBRACKET
+       ;
