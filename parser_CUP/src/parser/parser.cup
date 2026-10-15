@@ -50,7 +50,7 @@ precedence left STAR, SLASH, PERCENT;
 /* стартовый символ */
 start with program;
 
-/* правила грамматики */
+
 
 program ::= function_decl:f {: RESULT = f; :}
         ;
