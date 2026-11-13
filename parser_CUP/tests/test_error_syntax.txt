@@ -1,4 +1,0 @@
-function main() returns int {
-    int x = 10
-    return x;
-}

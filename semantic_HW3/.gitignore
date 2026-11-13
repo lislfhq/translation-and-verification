@@ -1,0 +1,11 @@
+src/lexer/FunnyLexer.java
+src/lexer/FunnyLexer.java~
+src/parser/FunnyParser.java
+src/parser/sym.java
+
+build/
+*.class
+
+.idea/
+*.iml
+.DS_Store
