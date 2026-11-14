@@ -1,5 +1,8 @@
-FunctionDeclNode: main -> INT
+FunctionDeclNode: main
   Params:
+  Returns:
+    VarDecl: res : INT
+  Uses:
   Body:
     VarDecl: a : INT
       IntLit (10) [INT]
@@ -20,5 +23,5 @@ FunctionDeclNode: main -> INT
       ElseBody:
         Assign: b
           IntLit (0) [INT]
-    Return:
+    Assign: res
       Var (b) [INT]

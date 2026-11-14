@@ -1,19 +1,22 @@
-FunctionDeclNode: main -> INT
+FunctionDeclNode: main
   Params:
+    VarDecl: x : INT
+  Returns:
+    VarDecl: r : INT
+  Uses:
   Body:
-    VarDecl: x : INT
-      IntLit (5) [INT]
-    VarDecl: x : INT
-      IntLit (10) [INT]
-    Assign: y
-      BinaryOp (+) [INT]
-        Var (x) [INT]
-        IntLit (2) [INT]
-    VarDecl: z : INT
-      BinaryOp (+) [ERROR]
-        Var (x) [INT]
-        Var (foo) [ERROR]
     Assign: x
-      BinaryOp (==) [BOOL]
-        Var (x) [INT]
-        IntLit (5) [INT]
+      BinaryOp (+) [ERROR]
+        Var (main) [ERROR]
+        IntLit (1) [INT]
+    ArrayAssign (arr)
+      IntLit (5) [INT]
+      IntLit (10) [INT]
+    If:
+      Condition:
+        BinaryOp (+) [INT]
+          Var (x) [INT]
+          IntLit (1) [INT]
+      ThenBody:
+        Assign: r
+          IntLit (1) [INT]

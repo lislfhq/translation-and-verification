@@ -1,0 +1,16 @@
+FunctionDeclNode: main
+  Params:
+    VarDecl: x : INT
+    VarDecl: y : INT
+  Returns:
+    VarDecl: r : INT
+    VarDecl: p : INT
+  Uses:
+    VarDecl: z : INT
+  Body:
+    Assign: r
+      IntLit (42) [INT]
+    Assign: z
+      IntLit (17) [INT]
+    Assign: p
+      Var (z) [INT]

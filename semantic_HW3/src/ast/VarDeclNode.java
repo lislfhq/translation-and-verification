@@ -2,10 +2,9 @@ package ast;
 
 public class VarDeclNode extends ASTNode {
     public final String name;
-    public Type declaredType; // Может быть null (для вывода типов по бонусу)
+    public Type declaredType;
     public final ASTNode expr;
 
-    // Конструктор с явным типом
     public VarDeclNode(String name, Type declaredType, ASTNode expr, int l, int c) {
         super(l, c);
         this.name = name;
@@ -13,7 +12,6 @@ public class VarDeclNode extends ASTNode {
         this.expr = expr;
     }
 
-    // Оверлоад для бонуса (если тип не указан в коде и его надо вывести)
     public VarDeclNode(String name, ASTNode expr, int l, int c) {
         this(name, null, expr, l, c);
     }

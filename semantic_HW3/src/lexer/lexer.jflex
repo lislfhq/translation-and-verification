@@ -59,6 +59,7 @@ WS        = [ \t\r\n]+
 "invariant" { return symbol(sym.KW_INVARIANT); }
 "length"    { return symbol(sym.KW_LENGTH); }
 "int"       { return symbol(sym.KW_INT); }
+"bool"      { return symbol(sym.KW_BOOL); } /* ДОБАВЛЕНО: поддержка логического типа */
 "uses"      { return symbol(sym.KW_USES); }
 "requires"  { return symbol(sym.KW_REQUIRES); }
 "ensures"   { return symbol(sym.KW_ENSURES); }

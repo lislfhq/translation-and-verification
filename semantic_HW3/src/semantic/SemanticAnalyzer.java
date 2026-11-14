@@ -45,7 +45,7 @@ public class SemanticAnalyzer {
         else if (node instanceof ReturnNode) visitReturn((ReturnNode) node);
         else if (node instanceof ArrayAssignNode) visitArrayAssign((ArrayAssignNode) node);
         else if (node instanceof ArrayAccessNode) visitArrayAccess((ArrayAccessNode) node);
-        else if (node instanceof FuncCallNode) visitFuncCall((FuncCallNode) node); //вызовы функций
+        else if (node instanceof FuncCallNode) visitFuncCall((FuncCallNode) node);
 
         else if (node instanceof AssertNode) visit(((AssertNode) node).expr);
         else if (node instanceof AssumeNode) visit(((AssumeNode) node).expr);
@@ -61,18 +61,16 @@ public class SemanticAnalyzer {
             }
         }
 
-        SymbolInfo funcSym = new SymbolInfo(node.name, node.returnType, true, paramTypes);
+        SymbolInfo funcSym = new SymbolInfo(node.name, Type.UNKNOWN, true, paramTypes);
         if (!currentScope.define(funcSym)) {
             reportError(node.line, node.column, "Функция '" + node.name + "' уже объявлена.");
         }
 
         currentScope = new Scope(currentScope);
 
-        if (node.parameters != null) {
-            for (VarDeclNode param : node.parameters) {
-                visit(param);
-            }
-        }
+        registerVars(node.parameters);
+        registerVars(node.returnParams);
+        registerVars(node.usesParams);
 
         if (node.body != null) {
             for (ASTNode stmt : node.body) {
@@ -81,6 +79,17 @@ public class SemanticAnalyzer {
         }
 
         currentScope = currentScope.getParent();
+    }
+
+    private void registerVars(List<VarDeclNode> list) {
+        if (list != null) {
+            for (VarDeclNode v : list) {
+                Type t = v.declaredType != null ? v.declaredType : Type.INT;
+                if (!currentScope.define(new SymbolInfo(v.name, t, false, null))) {
+                    reportError(v.line, v.column, "Переменная '" + v.name + "' уже объявлена в этой области видимости.");
+                }
+            }
+        }
     }
 
     private void visitFuncCall(FuncCallNode node) {
@@ -150,7 +159,7 @@ public class SemanticAnalyzer {
         if (sym == null) {
             reportError(node.line, node.column, "Переменная '" + node.name + "' используется до объявления.");
         } else if (sym.isFunction) {
-            reportError(node.line, node.column, "'" + node.name + "' является функцией, ей нельзя присвоить значение.");
+            reportError(node.line, node.column, "Имя функции '" + node.name + "' нельзя использовать как переменную для присваивания.");
         } else if (sym.type != node.expr.exprType && node.expr.exprType != Type.ERROR) {
             reportError(node.line, node.column, "Несовпадение типов при присваивании. Переменная '" + node.name + "' имеет тип " + sym.type + ", получено " + node.expr.exprType);
         }
@@ -160,6 +169,9 @@ public class SemanticAnalyzer {
         SymbolInfo sym = currentScope.resolve(node.name);
         if (sym == null) {
             reportError(node.line, node.column, "Переменная '" + node.name + "' не объявлена.");
+            node.exprType = Type.ERROR;
+        } else if (sym.isFunction) {
+            reportError(node.line, node.column, "Имя функции '" + node.name + "' нельзя использовать как переменную.");
             node.exprType = Type.ERROR;
         } else {
             node.exprType = sym.type;
@@ -198,7 +210,7 @@ public class SemanticAnalyzer {
     private void visitIf(IfNode node) {
         visit(node.cond);
         if (node.cond.exprType != Type.BOOL && node.cond.exprType != Type.ERROR) {
-            reportError(node.cond.line, node.cond.column, "Условие в if должно быть типа BOOL.");
+            reportError(node.cond.line, node.cond.column, "Условие ветвления должно быть логическим (BOOL), а получено " + node.cond.exprType);
         }
 
         currentScope = new Scope(currentScope);
@@ -217,7 +229,7 @@ public class SemanticAnalyzer {
     private void visitWhile(WhileNode node) {
         visit(node.cond);
         if (node.cond.exprType != Type.BOOL && node.cond.exprType != Type.ERROR) {
-            reportError(node.cond.line, node.cond.column, "Условие в while должно быть типа BOOL.");
+            reportError(node.cond.line, node.cond.column, "Условие цикла должно быть логическим (BOOL), а получено " + node.cond.exprType);
         }
 
         currentScope = new Scope(currentScope);
@@ -238,18 +250,28 @@ public class SemanticAnalyzer {
     }
 
     private void visitArrayAccess(ArrayAccessNode node) {
+        SymbolInfo sym = currentScope.resolve(node.arrayName);
+        if (sym == null) {
+            reportError(node.line, node.column, "Массив '" + node.arrayName + "' не объявлен.");
+        }
+
         visit(node.indexExpr);
         if (node.indexExpr.exprType != Type.INT && node.indexExpr.exprType != Type.ERROR) {
-            reportError(node.line, node.column, "Индекс массива должен быть типа INT.");
+            reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
         }
         node.exprType = Type.INT;
     }
 
     private void visitArrayAssign(ArrayAssignNode node) {
+        SymbolInfo sym = currentScope.resolve(node.arrayName);
+        if (sym == null) {
+            reportError(node.line, node.column, "Массив '" + node.arrayName + "' не объявлен.");
+        }
+
         visit(node.indexExpr);
         visit(node.valueExpr);
         if (node.indexExpr.exprType != Type.INT && node.indexExpr.exprType != Type.ERROR) {
-            reportError(node.line, node.column, "Индекс массива должен быть типа INT.");
+            reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
         }
     }
 }

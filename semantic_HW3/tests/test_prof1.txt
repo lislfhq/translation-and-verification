@@ -1,19 +1,4 @@
-// 1. Полный синтаксис (со словом function и типами)
-function main1(x: int, y: int) returns r: int, p: int uses z:int {
-    r = 42;
-    z = 17;
-    p = z;
-}
-
-// 2. Без слова function (начинается сразу с идентификатора)
-main2(x: int, y: int) returns r: int, p: int uses z:int {
-    r = 42;
-    z = 17;
-    p = z;
-}
-
-// 3. Максимально сокращенный (uses z без указания типа)
-main3(x: int, y: int) returns r: int, p: int uses z {
+function main(x: int, y: int) returns r: int, p: int uses z:int {
     r = 42;
     z = 17;
     p = z;

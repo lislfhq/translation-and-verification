@@ -1,7 +1,9 @@
-function main() returns int {
-    int x = 5;
-    int x = 10;       // Ошибка 1: повторное объявление
-    y = x + 2;        // Ошибка 2: использование y до объявления
-    int z = x + foo;  // Ошибка 3: foo не объявлена
-    x = x == 5;       // Ошибка 4: присваивание BOOL в переменную INT
+main(x: int) returns r: int {
+    x = main + 1;
+
+    arr[5] = 10;
+
+    if (x + 1) {
+        r = 1;
+    }
 }
