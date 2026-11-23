@@ -18,4 +18,9 @@ public class ArrayAssignNode extends ASTNode {
                 + indexExpr.dump(indent + "  ")
                 + valueExpr.dump(indent + "  ");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

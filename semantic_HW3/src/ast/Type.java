@@ -3,10 +3,11 @@ package ast;
 public enum Type {
     INT,
     BOOL,
+    INT_ARRAY,
+    BOOL_ARRAY,
     STRING,
     VOID,
-    ARRAY,
     FUNC,
-    UNKNOWN, //тип до прохождения семантического анализатора
-    ERROR    // тип, если при проверке найдена ошибка
+    UNKNOWN,
+    ERROR
 }

@@ -1,0 +1,21 @@
+Program:
+  FunctionDeclNode: main
+    Params:
+      VarDecl: a : INT
+    Requires:
+      BinaryOp (>=) [BOOL]
+        Var (a) [INT]
+        IntLit (0) [INT]
+    Returns:
+      VarDecl: r : INT
+    Ensures:
+      BinaryOp (==) [BOOL]
+        Var (r) [INT]
+        Var (a) [INT]
+    Uses:
+      VarDecl: x : INT
+    Body:
+      Assign: x
+        Var (a) [INT]
+      Assign: r
+        Var (x) [INT]

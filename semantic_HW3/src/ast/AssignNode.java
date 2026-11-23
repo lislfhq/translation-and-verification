@@ -14,4 +14,9 @@ public class AssignNode extends ASTNode {
     public String dump(String indent) {
         return indent + "Assign: " + name + "\n" + (expr != null ? expr.dump(indent + "  ") : "");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

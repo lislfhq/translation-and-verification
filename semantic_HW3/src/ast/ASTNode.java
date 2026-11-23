@@ -4,13 +4,14 @@ public abstract class ASTNode {
     public final int line;
     public final int column;
 
-    //аннотация типа для HW3, изначально UNKNOWN
     public Type exprType = Type.UNKNOWN;
 
     public ASTNode(int line, int column) {
         this.line = line;
         this.column = column;
     }
+
+    public abstract void accept(ASTVisitor visitor);
 
     public String dump(String indent) {
         return indent + getClass().getSimpleName() +

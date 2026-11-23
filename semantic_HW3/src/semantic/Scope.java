@@ -16,7 +16,8 @@ public class Scope {
     }
 
     public boolean define(SymbolInfo symbol) {
-        if (symbols.containsKey(symbol.name)) {
+        // В Funny затенение имён из внешних областей видимости запрещено
+        if (resolve(symbol.name) != null) {
             return false;
         }
         symbols.put(symbol.name, symbol);

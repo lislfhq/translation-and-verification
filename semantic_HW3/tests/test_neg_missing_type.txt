@@ -1,0 +1,3 @@
+main(a) returns r: int {
+    r = a;
+}

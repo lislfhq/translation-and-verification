@@ -1,9 +1,0 @@
-main(x: int) returns r: int {
-    x = main + 1;
-
-    arr[5] = 10;
-
-    if (x + 1) {
-        r = 1;
-    }
-}

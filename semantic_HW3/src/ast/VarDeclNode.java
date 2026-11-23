@@ -22,4 +22,9 @@ public class VarDeclNode extends ASTNode {
         return indent + "VarDecl: " + name + " : " + t + "\n"
                 + (expr != null ? expr.dump(indent + "  ") : "");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

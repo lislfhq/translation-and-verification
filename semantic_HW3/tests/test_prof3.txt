@@ -1,5 +1,0 @@
-main(x: int, y: int) returns r: int, p: int uses z {
-    r = 42;
-    z = 17;
-    p = z;
-}

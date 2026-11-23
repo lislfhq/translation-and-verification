@@ -19,4 +19,9 @@ public class BinaryOpNode extends ASTNode {
                 + left.dump(indent + "  ")
                 + right.dump(indent + "  ");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

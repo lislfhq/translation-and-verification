@@ -13,4 +13,9 @@ public class IntLitNode extends ASTNode {
     public String dump(String indent) {
         return indent + "IntLit (" + value + ") [" + exprType + "]\n";
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

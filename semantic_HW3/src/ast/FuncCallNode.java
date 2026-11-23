@@ -23,4 +23,9 @@ public class FuncCallNode extends ASTNode {
         }
         return sb.toString();
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

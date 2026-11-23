@@ -24,8 +24,7 @@ parser code {:
     }
 :};
 
-/* терминалы (токены из лексера) */
-terminal KW_FUNCTION, KW_RETURNS, KW_INT, KW_BOOL, KW_IF, KW_ELSE, KW_WHILE; //добавлен KW_BOOL
+terminal KW_FUNCTION, KW_RETURNS, KW_INT, KW_BOOL, KW_IF, KW_ELSE, KW_WHILE;
 terminal KW_REQUIRES, KW_ENSURES, KW_ASSERT, KW_ASSUME;
 terminal KW_INVARIANT, KW_LENGTH, KW_USES;
 
@@ -37,62 +36,90 @@ terminal EQ, NEQ, LT, LEQ, GT, GEQ;
 terminal String ID;
 terminal Integer INT_LIT;
 
-/* нетерминалы */
-non terminal ASTNode program, function_decl, stmt, expr;
+non terminal ASTNode program, stmt, expr, opt_requires, opt_ensures;
+non terminal FunctionDeclNode function_decl;
+non terminal List<FunctionDeclNode> func_list;
 non terminal List<ASTNode> stmt_list, opt_stmt_list;
 non terminal List<ASTNode> arg_list, opt_arg_list;
-non terminal List<VarDeclNode> param_list, opt_param_list, uses_clause;
-non terminal VarDeclNode param_decl;
+non terminal List<VarDeclNode> typed_param_list, opt_typed_param_list, uses_param_list, uses_clause;
+non terminal VarDeclNode typed_param, uses_param;
+non terminal Type type_spec;
 non terminal Object opt_func_kw;
 
-/* приоритеты и ассоциативность операторов */
 precedence right ASSIGN;
 precedence left EQ, NEQ, LT, LEQ, GT, GEQ;
 precedence left PLUS, MINUS;
 precedence left STAR, SLASH, PERCENT;
 
-/* стартовый символ */
 start with program;
 
-program ::= function_decl:f {: RESULT = f; :}
-        ;
+program ::= func_list:fl
+            {: RESULT = new ProgramNode(fl, flleft, flright); :}
+          ;
 
-/* Опциональное слово function */
+func_list ::= func_list:fl function_decl:f
+              {: fl.add(f); RESULT = fl; :}
+            | function_decl:f
+              {: List<FunctionDeclNode> list = new ArrayList<>(); list.add(f); RESULT = list; :}
+            ;
+
 opt_func_kw ::= KW_FUNCTION | /* пусто */ ;
 
-/* Обновленное правило объявления функции */
-function_decl ::= opt_func_kw ID:name LPAREN opt_param_list:params RPAREN
-                  KW_RETURNS opt_param_list:rets uses_clause:uses
+function_decl ::= opt_func_kw ID:name LPAREN opt_typed_param_list:params RPAREN
+                  opt_requires:reqs
+                  KW_RETURNS typed_param_list:rets
+                  opt_ensures:enss
+                  uses_clause:uses
                   LBRACE opt_stmt_list:body RBRACE
-                  {: RESULT = new FunctionDeclNode(name, params, rets, uses, body, nameleft, nameright); :}
+                  {: RESULT = new FunctionDeclNode(name, params, reqs, rets, enss, uses, body, nameleft, nameright); :}
                 ;
 
-/* Синтаксис параметров вида "id : type" или просто "id" (для uses) */
-param_decl ::= ID:id COLON KW_INT
-               {: RESULT = new VarDeclNode(id, Type.INT, null, idleft, idright); :}
-             | ID:id COLON KW_BOOL
-               {: RESULT = new VarDeclNode(id, Type.BOOL, null, idleft, idright); :}
+opt_requires ::= KW_REQUIRES expr:e {: RESULT = e; :}
+               | /* пусто */        {: RESULT = null; :}
+               ;
+
+opt_ensures ::= KW_ENSURES expr:e   {: RESULT = e; :}
+              | /* пусто */         {: RESULT = null; :}
+              ;
+
+type_spec ::= KW_INT                    {: RESULT = Type.INT; :}
+            | KW_BOOL                   {: RESULT = Type.BOOL; :}
+            | KW_INT LBRACKET RBRACKET  {: RESULT = Type.INT_ARRAY; :}
+            | KW_BOOL LBRACKET RBRACKET {: RESULT = Type.BOOL_ARRAY; :}
+            ;
+
+typed_param ::= ID:id COLON type_spec:t
+                {: RESULT = new VarDeclNode(id, t, null, idleft, idright); :}
+              ;
+
+typed_param_list ::= typed_param_list:pl COMMA typed_param:p
+                     {: pl.add(p); RESULT = pl; :}
+                   | typed_param:p
+                     {: List<VarDeclNode> list = new ArrayList<>(); list.add(p); RESULT = list; :}
+                   ;
+
+opt_typed_param_list ::= typed_param_list:pl {: RESULT = pl; :}
+                       | /* пусто */         {: RESULT = new ArrayList<VarDeclNode>(); :}
+                       ;
+
+uses_param ::= ID:id COLON type_spec:t
+               {: RESULT = new VarDeclNode(id, t, null, idleft, idright); :}
              | ID:id
                {: RESULT = new VarDeclNode(id, null, null, idleft, idright); :}
              ;
 
-param_list ::= param_list:pl COMMA param_decl:p
-               {: pl.add(p); RESULT = pl; :}
-             | param_decl:p
-               {: List<VarDeclNode> list = new ArrayList<>(); list.add(p); RESULT = list; :}
-             ;
+uses_param_list ::= uses_param_list:pl COMMA uses_param:p
+                    {: pl.add(p); RESULT = pl; :}
+                  | uses_param:p
+                    {: List<VarDeclNode> list = new ArrayList<>(); list.add(p); RESULT = list; :}
+                  ;
 
-opt_param_list ::= param_list:pl {: RESULT = pl; :}
-                 | /* пусто */ {: RESULT = new ArrayList<VarDeclNode>(); :}
-                 ;
-
-/* Правило для uses */
-uses_clause ::= KW_USES param_list:pl {: RESULT = pl; :}
-              | /* пусто */ {: RESULT = new ArrayList<VarDeclNode>(); :}
+uses_clause ::= KW_USES uses_param_list:pl {: RESULT = pl; :}
+              | /* пусто */                {: RESULT = new ArrayList<VarDeclNode>(); :}
               ;
 
 opt_stmt_list ::= stmt_list:sl {: RESULT = sl; :}
-                | /* пусто */   {: RESULT = new ArrayList<ASTNode>(); :}
+                | /* пусто */  {: RESULT = new ArrayList<ASTNode>(); :}
                 ;
 
 stmt_list ::= stmt_list:sl stmt:s
@@ -105,10 +132,6 @@ stmt ::= KW_INT ID:id ASSIGN expr:e SEMI
          {: RESULT = new VarDeclNode(id, Type.INT, e, idleft, idright); :}
        | ID:id ASSIGN expr:e SEMI
          {: RESULT = new AssignNode(id, e, idleft, idright); :}
-       | KW_REQUIRES expr:e SEMI
-         {: RESULT = new RequiresNode(e, eleft, eright); :}
-       | KW_ENSURES expr:e SEMI
-         {: RESULT = new EnsuresNode(e, eleft, eright); :}
        | KW_ASSERT expr:e SEMI
          {: RESULT = new AssertNode(e, eleft, eright); :}
        | KW_ASSUME expr:e SEMI
@@ -141,6 +164,7 @@ expr ::= expr:e1 PLUS expr:e2      {: RESULT = new BinaryOpNode("+", e1, e2, e1l
        | ID:id                     {: RESULT = new VarNode(id, idleft, idright); :}
        | ID:id LBRACKET expr:idx RBRACKET {: RESULT = new ArrayAccessNode(id, idx, idleft, idright); :}
        | ID:name LPAREN opt_arg_list:args RPAREN {: RESULT = new FuncCallNode(name, args, nameleft, nameright); :}
+       | KW_LENGTH LPAREN expr:e RPAREN {: RESULT = new FuncCallNode("length", Collections.singletonList(e), eleft, eright); :}
        ;
 
 opt_arg_list ::= arg_list:al {: RESULT = al; :}

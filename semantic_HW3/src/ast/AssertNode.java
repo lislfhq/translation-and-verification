@@ -12,4 +12,9 @@ public class AssertNode extends ASTNode {
     public String dump(String indent) {
         return indent + "Assert:\n" + (expr != null ? expr.dump(indent + "  ") : "");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

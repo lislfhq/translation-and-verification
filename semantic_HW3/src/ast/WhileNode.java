@@ -25,4 +25,9 @@ public class WhileNode extends ASTNode {
         }
         return sb.toString();
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

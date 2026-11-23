@@ -11,7 +11,7 @@ public class Main {
     public static void main(String[] args) {
         if (args.length < 1) {
             System.err.println("Использование: java Main <файл_кода> [файл_ast_для_сверки]");
-            return;
+            System.exit(1);
         }
 
         try {
@@ -21,23 +21,23 @@ public class Main {
 
             if (root == null) {
                 System.err.println("Ошибка: Парсер вернул пустое дерево.");
-                return;
+                System.exit(1);
             }
 
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
             analyzer.analyze(root);
 
+            boolean failed = false;
             if (analyzer.hasErrors()) {
                 System.err.println("\n=== Найдены семантические ошибки ===");
                 analyzer.printErrors();
+                failed = true;
             } else {
                 System.err.println("\n[УСПЕХ] Семантический анализ пройден без ошибок.");
             }
 
             String astDump = root.dump("");
-
             System.err.println("=== Сгенерированное (Аннотированное) AST ===");
-
             System.out.print(astDump);
 
             if (args.length == 2) {
@@ -51,11 +51,17 @@ public class Main {
                     System.err.println("\n[ОШИБКА] AST не совпадает с эталоном!");
                     System.err.println("--- Ожидалось ---:\n" + expectedAst);
                     System.err.println("--- Получено ---:\n" + actualAst);
+                    failed = true;
                 }
+            }
+
+            if (failed) {
+                System.exit(1);
             }
 
         } catch (Exception e) {
             System.err.println("Ошибка во время работы парсера или анализатора: " + e.getMessage());
+            System.exit(1);
         }
     }
 }

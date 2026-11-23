@@ -1,0 +1,11 @@
+Program:
+  FunctionDeclNode: first
+    Params:
+      VarDecl: a : INT_ARRAY
+    Returns:
+      VarDecl: r : INT
+    Uses:
+    Body:
+      Assign: r
+        ArrayAccess (a) [INT]
+          IntLit (0) [INT]

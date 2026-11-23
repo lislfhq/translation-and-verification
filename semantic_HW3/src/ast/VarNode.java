@@ -13,4 +13,9 @@ public class VarNode extends ASTNode {
         String typeStr = (exprType != Type.UNKNOWN) ? " [" + exprType + "]" : "";
         return indent + "Var (" + name + ")" + typeStr + "\n";
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

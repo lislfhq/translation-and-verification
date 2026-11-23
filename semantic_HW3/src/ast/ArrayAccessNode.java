@@ -16,4 +16,9 @@ public class ArrayAccessNode extends ASTNode {
         return indent + "ArrayAccess (" + arrayName + ")" + typeStr + "\n"
                 + indexExpr.dump(indent + "  ");
     }
+
+    @Override
+    public void accept(ASTVisitor visitor) {
+        visitor.visit(this);
+    }
 }

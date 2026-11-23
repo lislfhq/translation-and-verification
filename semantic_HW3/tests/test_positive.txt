@@ -1,12 +1,10 @@
-function main() returns res: int {
-    int a = 10;
-    int b = a + 5;
-
+function main() returns res: int uses a: int, b: int {
+    a = 10;
+    b = a + 5;
     if (a == 10) {
         b = b + 1;
     } else {
         b = 0;
     }
-
     res = b;
 }
