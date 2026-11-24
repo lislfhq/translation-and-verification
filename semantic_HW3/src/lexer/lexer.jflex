@@ -63,6 +63,11 @@ WS        = [ \t\r\n]+
 "uses"      { return symbol(sym.KW_USES); }
 "requires"  { return symbol(sym.KW_REQUIRES); }
 "ensures"   { return symbol(sym.KW_ENSURES); }
+"true"      { return symbol(sym.KW_TRUE); }
+"false"     { return symbol(sym.KW_FALSE); }
+"and"       { return symbol(sym.KW_AND); }
+"or"        { return symbol(sym.KW_OR); }
+"not"       { return symbol(sym.KW_NOT); }
 
 {BAD_ALNUM} {
     reportError("Идентификатор не может начинаться с цифры");

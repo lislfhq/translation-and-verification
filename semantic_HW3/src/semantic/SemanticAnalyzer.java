@@ -50,12 +50,10 @@ public class SemanticAnalyzer implements ASTVisitor {
     public void visit(ProgramNode node) {
         if (node.functions == null) return;
 
-        // Проход 1: регистрируем сигнатуры всех функций модуля
         for (FunctionDeclNode fn : node.functions) {
             registerFunctionSignature(fn);
         }
 
-        // Проход 2: проверяем контракты и тела всех функций
         for (FunctionDeclNode fn : node.functions) {
             visitFunctionBody(fn);
         }
@@ -92,39 +90,32 @@ public class SemanticAnalyzer implements ASTVisitor {
     private void visitFunctionBody(FunctionDeclNode node) {
         currentScope = new Scope(currentScope);
 
-        // 1. Входные параметры (только для чтения)
         registerVars(node.parameters, false, false);
 
-        // 2. Контракт requires: видит только входные параметры
         if (node.requiresExpr != null) {
             visitBoolClause(node.requiresExpr, "requires");
         }
 
-        // 3. Выходные параметры returns (изменяемые)
         registerVars(node.returnParams, true, false);
 
-        // 4. Контракт ensures: видит входные и выходные параметры (но не uses)
         if (node.ensuresExpr != null) {
             visitBoolClause(node.ensuresExpr, "ensures");
         }
 
-        // 5. Локальные переменные uses (изменяемые, допускают вывод типа)
         registerVars(node.usesParams, true, true);
 
-        // 6. Тело функции
         if (node.body != null) {
             for (ASTNode stmt : node.body) {
                 visitNode(stmt);
             }
         }
 
-        // 7. Проверка, что для всех uses без явного типа удалось вывести тип
         if (node.usesParams != null) {
             for (VarDeclNode v : node.usesParams) {
                 SymbolInfo sym = currentScope.resolve(v.name);
                 if (sym != null && !sym.isFunction && sym.type == Type.UNKNOWN) {
                     reportError(v.line, v.column,
-                            "Невозможно вывести тип локальной переменной '" + v.name + "' (отсутствует присваивание).");
+                            "Невозможно вывести тип локальной переменной '" + v.name + "' (отсутствует корректное присваивание).");
                     sym.type = Type.ERROR;
                     v.declaredType = Type.ERROR;
                 }
@@ -161,11 +152,15 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
     }
 
-    @Override
-    public void visit(FuncCallNode node) {
+    // Общая проверка вызова функции; возвращает SymbolInfo при успехе или null при ошибке
+    private SymbolInfo checkCallArguments(FuncCallNode node) {
+        boolean hasArgError = false;
         if (node.args != null) {
             for (ASTNode arg : node.args) {
                 visitNode(arg);
+                if (arg.exprType == Type.ERROR) {
+                    hasArgError = true;
+                }
             }
         }
 
@@ -173,12 +168,12 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (sym == null) {
             reportError(node.line, node.column, "Функция '" + node.name + "' не объявлена.");
             node.exprType = Type.ERROR;
-            return;
+            return null;
         }
         if (!sym.isFunction) {
             reportError(node.line, node.column, "'" + node.name + "' не является функцией.");
             node.exprType = Type.ERROR;
-            return;
+            return null;
         }
 
         int expectedArgs = sym.paramTypes != null ? sym.paramTypes.size() : 0;
@@ -187,6 +182,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (expectedArgs != actualArgs) {
             reportError(node.line, node.column,
                     "Неверное число аргументов функции '" + node.name + "'. Ожидалось " + expectedArgs + ", передано " + actualArgs);
+            hasArgError = true;
         }
 
         if (node.args != null) {
@@ -196,8 +192,23 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (arg.exprType != expectedType && arg.exprType != Type.ERROR && expectedType != Type.ERROR) {
                     reportError(arg.line, arg.column,
                             "Несовпадение типа аргумента " + (i + 1) + " в вызове '" + node.name + "'. Ожидался " + expectedType + ", получен " + arg.exprType);
+                    hasArgError = true;
                 }
             }
+        }
+
+        if (hasArgError) {
+            node.exprType = Type.ERROR;
+            return null;
+        }
+        return sym;
+    }
+
+    @Override
+    public void visit(FuncCallNode node) {
+        SymbolInfo sym = checkCallArguments(node);
+        if (sym == null) {
+            return;
         }
 
         if (sym.returnTypes != null && sym.returnTypes.size() == 1) {
@@ -206,6 +217,57 @@ public class SemanticAnalyzer implements ASTVisitor {
             reportError(node.line, node.column,
                     "Функция '" + node.name + "' возвращает не одно значение и не может использоваться в скалярном выражении.");
             node.exprType = Type.ERROR;
+        }
+    }
+
+    @Override
+    public void visit(TupleAssignNode node) {
+        SymbolInfo sym = checkCallArguments(node.call);
+        if (sym == null) {
+            return;
+        }
+
+        List<Type> retTypes = sym.returnTypes != null ? sym.returnTypes : Collections.emptyList();
+        if (retTypes.size() != node.targets.size()) {
+            reportError(node.line, node.column,
+                    "Несоответствие числа возвращаемых значений при кортежном присваивании: функция '" + node.call.name
+                            + "' возвращает " + retTypes.size() + ", а переменных слева " + node.targets.size());
+            return;
+        }
+
+        for (int i = 0; i < node.targets.size(); i++) {
+            assignToTarget(node.targets.get(i), retTypes.get(i), node.line, node.column);
+        }
+    }
+
+    private void assignToTarget(String name, Type rhsType, int line, int col) {
+        SymbolInfo sym = currentScope.resolve(name);
+        if (sym == null) {
+            reportError(line, col, "Переменная '" + name + "' используется до объявления.");
+            return;
+        }
+        if (sym.isFunction) {
+            reportError(line, col, "Имя функции '" + name + "' нельзя использовать как переменную для присваивания.");
+            return;
+        }
+        if (!sym.isMutable) {
+            reportError(line, col, "Входной параметр '" + name + "' неизменяем (read-only).");
+            return;
+        }
+
+        if (sym.type == Type.UNKNOWN) {
+            if (rhsType != Type.ERROR && rhsType != Type.UNKNOWN) {
+                sym.type = rhsType;
+                if (sym.declNode != null) {
+                    sym.declNode.declaredType = sym.type;
+                }
+            }
+            return;
+        }
+
+        if (sym.type != rhsType && rhsType != Type.ERROR && sym.type != Type.ERROR) {
+            reportError(line, col,
+                    "Несовпадение типов при присваивании. Переменная '" + name + "' имеет тип " + sym.type + ", получено " + rhsType);
         }
     }
 
@@ -238,35 +300,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public void visit(AssignNode node) {
         visitNode(node.expr);
-
-        SymbolInfo sym = currentScope.resolve(node.name);
-        if (sym == null) {
-            reportError(node.line, node.column, "Переменная '" + node.name + "' используется до объявления.");
-            return;
-        }
-        if (sym.isFunction) {
-            reportError(node.line, node.column, "Имя функции '" + node.name + "' нельзя использовать как переменную для присваивания.");
-            return;
-        }
-        if (!sym.isMutable) {
-            reportError(node.line, node.column, "Входной параметр '" + node.name + "' неизменяем (read-only).");
-            return;
-        }
-
-        if (sym.type == Type.UNKNOWN) {
-            if (node.expr.exprType != Type.ERROR && node.expr.exprType != Type.UNKNOWN) {
-                sym.type = node.expr.exprType;
-                if (sym.declNode != null) {
-                    sym.declNode.declaredType = sym.type;
-                }
-            }
-            return;
-        }
-
-        if (sym.type != node.expr.exprType && node.expr.exprType != Type.ERROR && sym.type != Type.ERROR) {
-            reportError(node.line, node.column,
-                    "Несовпадение типов при присваивании. Переменная '" + node.name + "' имеет тип " + sym.type + ", получено " + node.expr.exprType);
-        }
+        assignToTarget(node.name, node.expr.exprType, node.line, node.column);
     }
 
     @Override
@@ -283,6 +317,31 @@ public class SemanticAnalyzer implements ASTVisitor {
             node.exprType = Type.ERROR;
         } else {
             node.exprType = sym.type;
+        }
+    }
+
+    @Override
+    public void visit(UnaryOpNode node) {
+        visitNode(node.expr);
+        if (node.expr.exprType == Type.ERROR) {
+            node.exprType = Type.ERROR;
+            return;
+        }
+
+        if (node.op.equals("-")) {
+            if (node.expr.exprType == Type.INT) {
+                node.exprType = Type.INT;
+            } else {
+                reportError(node.line, node.column, "Унарный '-' требует операнд типа INT, получено " + node.expr.exprType);
+                node.exprType = Type.ERROR;
+            }
+        } else if (node.op.equals("not")) {
+            if (node.expr.exprType == Type.BOOL) {
+                node.exprType = Type.BOOL;
+            } else {
+                reportError(node.line, node.column, "Оператор 'not' требует операнд типа BOOL, получено " + node.expr.exprType);
+                node.exprType = Type.ERROR;
+            }
         }
     }
 
@@ -306,11 +365,27 @@ public class SemanticAnalyzer implements ASTVisitor {
                 reportError(node.line, node.column, "Оператор '" + node.op + "' требует операнды типа INT.");
                 node.exprType = Type.ERROR;
             }
-        } else if (node.op.matches("==|!=|<|<=|>|>=")) {
+        } else if (node.op.matches("<|<=|>|>=")) {
+            if (leftType == Type.INT && rightType == Type.INT) {
+                node.exprType = Type.BOOL;
+            } else {
+                reportError(node.line, node.column,
+                        "Оператор сравнения '" + node.op + "' применим только к операндам типа INT, получено " + leftType + " и " + rightType);
+                node.exprType = Type.ERROR;
+            }
+        } else if (node.op.matches("==|!=")) {
             if (leftType == rightType) {
                 node.exprType = Type.BOOL;
             } else {
                 reportError(node.line, node.column, "Несовпадение типов в операторе сравнения '" + node.op + "'.");
+                node.exprType = Type.ERROR;
+            }
+        } else if (node.op.equals("and") || node.op.equals("or")) {
+            if (leftType == Type.BOOL && rightType == Type.BOOL) {
+                node.exprType = Type.BOOL;
+            } else {
+                reportError(node.line, node.column,
+                        "Логический оператор '" + node.op + "' требует операнды типа BOOL, получено " + leftType + " и " + rightType);
                 node.exprType = Type.ERROR;
             }
         }
@@ -343,6 +418,10 @@ public class SemanticAnalyzer implements ASTVisitor {
             reportError(node.cond.line, node.cond.column, "Условие цикла должно быть логическим (BOOL), а получено " + node.cond.exprType);
         }
 
+        if (node.invariant != null) {
+            visitBoolClause(node.invariant, "invariant");
+        }
+
         currentScope = new Scope(currentScope);
         if (node.body != null) {
             for (ASTNode n : node.body) visitNode(n);
@@ -360,6 +439,11 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public void visit(IntLitNode node) {
         node.exprType = Type.INT;
+    }
+
+    @Override
+    public void visit(BoolLitNode node) {
+        node.exprType = Type.BOOL;
     }
 
     @Override
@@ -381,8 +465,12 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public void visit(ArrayAccessNode node) {
         visitNode(node.indexExpr);
-        if (node.indexExpr.exprType != Type.INT && node.indexExpr.exprType != Type.ERROR) {
-            reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
+        boolean badIndex = false;
+        if (node.indexExpr.exprType != Type.INT) {
+            if (node.indexExpr.exprType != Type.ERROR) {
+                reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
+            }
+            badIndex = true;
         }
 
         SymbolInfo sym = currentScope.resolve(node.arrayName);
@@ -403,7 +491,8 @@ public class SemanticAnalyzer implements ASTVisitor {
             node.exprType = Type.ERROR;
             return;
         }
-        node.exprType = elemType;
+
+        node.exprType = badIndex ? Type.ERROR : elemType;
     }
 
     @Override

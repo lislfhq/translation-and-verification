@@ -1,0 +1,11 @@
+g(n: int) returns r: int {
+    r = n + 1;
+}
+
+main(a: int[]) returns res: int[] uses x, y {
+    x = g(a);
+    x = a;
+    y = a[1 < 2];
+    y = a;
+    res = x;
+}

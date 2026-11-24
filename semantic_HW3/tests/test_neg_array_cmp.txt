@@ -1,0 +1,7 @@
+main(a: int[], b: int[]) returns r: int {
+    if (a < b) {
+        r = 1;
+    } else {
+        r = 0;
+    }
+}

@@ -54,6 +54,7 @@ run_pos tests/test_positive.txt tests/test_positive.ast
 run_pos tests/test_contracts.txt tests/test_contracts.ast
 run_pos tests/test_recursion_multi.txt tests/test_recursion_multi.ast
 run_pos tests/test_arrays.txt tests/test_arrays.ast
+run_pos tests/test_tuples_logic.txt tests/test_tuples_logic.ast
 
 run_neg tests/test_neg_readonly.txt 1 "[2:5]" "неизменяем"
 run_neg tests/test_neg_contracts_scope.txt 2 "[1:23]" "[1:53]"
@@ -61,5 +62,7 @@ run_neg tests/test_neg_scalar_index.txt 2 "[2:9]" "[4:5]" "не является
 run_neg tests/test_neg_inference.txt 3 "[2:9]" "Невозможно вывести тип"
 run_neg tests/test_neg_unknown_call.txt 2 "unknown" "missing"
 run_neg tests/test_neg_missing_type.txt 2 "Синтаксическая ошибка" "[1:7]"
+run_neg tests/test_neg_array_cmp.txt 1 "[2:9]" "применим только к операндам типа INT"
+run_neg tests/test_neg_inference_recovery.txt 2 "[6:11]" "[8:11]"
 
 exit $FAIL

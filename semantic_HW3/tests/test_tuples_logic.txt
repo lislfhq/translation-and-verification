@@ -1,0 +1,12 @@
+pair(a: int, b: int) returns x: int, y: int {
+    x = -a;
+    y = b + 1;
+}
+
+main(n: int) requires n >= 0 and true returns r: int uses u, v {
+    u, v = pair(n, 2);
+    while (not (u == 0) and v > 0) invariant v >= 0 {
+        u = 0;
+    }
+    r = u + v;
+}
