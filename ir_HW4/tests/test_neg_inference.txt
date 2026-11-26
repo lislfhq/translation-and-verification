@@ -1,0 +1,3 @@
+main() returns r: int uses x, y {
+    r = x;
+}

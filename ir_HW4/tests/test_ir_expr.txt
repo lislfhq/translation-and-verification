@@ -1,0 +1,7 @@
+compute(x: int) returns res: int uses a, b, c, dead {
+    a = (2 + 3) * 4;
+    b = (x + 0) * 1 + (x - x);
+    c = (x + 1) + (x + 1);
+    dead = a * 99 + b;
+    res = a + b + c;
+}

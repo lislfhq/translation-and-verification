@@ -1,0 +1,4 @@
+function main(a: int) requires a >= 0 returns r: int ensures r == a uses x: int {
+    x = a;
+    r = x;
+}

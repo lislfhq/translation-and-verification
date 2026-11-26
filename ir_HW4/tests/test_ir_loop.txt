@@ -1,0 +1,8 @@
+sum_to(n: int) requires n >= 0 returns sum: int uses i {
+    i = 1;
+    sum = 0;
+    while (i <= n) invariant sum >= 0 {
+        sum = sum + i;
+        i = i + 1;
+    }
+}

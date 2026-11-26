@@ -1,0 +1,8 @@
+branch_calc(x: int, y: int) returns res: int uses t {
+    if (x > 0 and not (y == 0)) {
+        t = (x * 2) + (y / 1);
+    } else {
+        t = -x + 10;
+    }
+    res = t + 0;
+}

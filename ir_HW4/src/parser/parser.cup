@@ -1,0 +1,207 @@
+package parser;
+
+import java_cup.runtime.*;
+import ast.*;
+import java.util.*;
+
+parser code {:
+    public void report_error(String message, Object info) {
+        StringBuilder m = new StringBuilder("Синтаксическая ошибка");
+        if (info instanceof Symbol) {
+            Symbol s = (Symbol) info;
+            m.append(" [").append(s.left).append(":").append(s.right).append("]");
+            if (s.value != null) {
+                m.append(" рядом с '").append(s.value).append("'");
+            }
+        }
+        m.append(": ").append(message);
+        System.err.println(m);
+    }
+
+    public void report_fatal_error(String message, Object info) throws Exception {
+        report_error(message, info);
+        throw new Exception("Невосстановимая ошибка парсинга");
+    }
+:};
+
+terminal KW_FUNCTION, KW_RETURNS, KW_INT, KW_BOOL, KW_IF, KW_ELSE, KW_WHILE;
+terminal KW_REQUIRES, KW_ENSURES, KW_ASSERT, KW_ASSUME;
+terminal KW_INVARIANT, KW_LENGTH, KW_USES;
+terminal KW_TRUE, KW_FALSE, KW_AND, KW_OR, KW_NOT;
+
+terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET;
+terminal SEMI, COLON, COMMA, ASSIGN;
+terminal PLUS, MINUS, STAR, SLASH, PERCENT;
+terminal EQ, NEQ, LT, LEQ, GT, GEQ;
+terminal UMINUS;
+
+terminal String ID;
+terminal Integer INT_LIT;
+
+non terminal ASTNode program, stmt, expr, opt_requires, opt_ensures, opt_invariant;
+non terminal FunctionDeclNode function_decl;
+non terminal List<FunctionDeclNode> func_list;
+non terminal List<ASTNode> stmt_list, opt_stmt_list;
+non terminal List<ASTNode> arg_list, opt_arg_list;
+non terminal List<String> id_list;
+non terminal List<VarDeclNode> typed_param_list, opt_typed_param_list, uses_param_list, uses_clause;
+non terminal VarDeclNode typed_param, uses_param;
+non terminal Type type_spec;
+non terminal Object opt_func_kw;
+
+precedence right ASSIGN;
+precedence left KW_OR;
+precedence left KW_AND;
+precedence right KW_NOT;
+precedence left EQ, NEQ, LT, LEQ, GT, GEQ;
+precedence left PLUS, MINUS;
+precedence left STAR, SLASH, PERCENT;
+precedence right UMINUS;
+
+start with program;
+
+program ::= func_list:fl
+            {: RESULT = new ProgramNode(fl, flleft, flright); :}
+          ;
+
+func_list ::= func_list:fl function_decl:f
+              {: fl.add(f); RESULT = fl; :}
+            | function_decl:f
+              {: List<FunctionDeclNode> list = new ArrayList<>(); list.add(f); RESULT = list; :}
+            ;
+
+opt_func_kw ::= KW_FUNCTION | /* пусто */ ;
+
+function_decl ::= opt_func_kw ID:name LPAREN opt_typed_param_list:params RPAREN
+                  opt_requires:reqs
+                  KW_RETURNS typed_param_list:rets
+                  opt_ensures:enss
+                  uses_clause:uses
+                  LBRACE opt_stmt_list:body RBRACE
+                  {: RESULT = new FunctionDeclNode(name, params, reqs, rets, enss, uses, body, nameleft, nameright); :}
+                ;
+
+opt_requires ::= KW_REQUIRES expr:e {: RESULT = e; :}
+               | /* пусто */        {: RESULT = null; :}
+               ;
+
+opt_ensures ::= KW_ENSURES expr:e   {: RESULT = e; :}
+              | /* пусто */         {: RESULT = null; :}
+              ;
+
+opt_invariant ::= KW_INVARIANT expr:e {: RESULT = e; :}
+                | /* пусто */         {: RESULT = null; :}
+                ;
+
+type_spec ::= KW_INT                    {: RESULT = Type.INT; :}
+            | KW_BOOL                   {: RESULT = Type.BOOL; :}
+            | KW_INT LBRACKET RBRACKET  {: RESULT = Type.INT_ARRAY; :}
+            | KW_BOOL LBRACKET RBRACKET {: RESULT = Type.BOOL_ARRAY; :}
+            ;
+
+typed_param ::= ID:id COLON type_spec:t
+                {: RESULT = new VarDeclNode(id, t, null, idleft, idright); :}
+              ;
+
+typed_param_list ::= typed_param_list:pl COMMA typed_param:p
+                     {: pl.add(p); RESULT = pl; :}
+                   | typed_param:p
+                     {: List<VarDeclNode> list = new ArrayList<>(); list.add(p); RESULT = list; :}
+                   ;
+
+opt_typed_param_list ::= typed_param_list:pl {: RESULT = pl; :}
+                       | /* пусто */         {: RESULT = new ArrayList<VarDeclNode>(); :}
+                       ;
+
+uses_param ::= ID:id COLON type_spec:t
+               {: RESULT = new VarDeclNode(id, t, null, idleft, idright); :}
+             | ID:id
+               {: RESULT = new VarDeclNode(id, null, null, idleft, idright); :}
+             ;
+
+uses_param_list ::= uses_param_list:pl COMMA uses_param:p
+                    {: pl.add(p); RESULT = pl; :}
+                  | uses_param:p
+                    {: List<VarDeclNode> list = new ArrayList<>(); list.add(p); RESULT = list; :}
+                  ;
+
+uses_clause ::= KW_USES uses_param_list:pl {: RESULT = pl; :}
+              | /* пусто */                {: RESULT = new ArrayList<VarDeclNode>(); :}
+              ;
+
+opt_stmt_list ::= stmt_list:sl {: RESULT = sl; :}
+                | /* пусто */  {: RESULT = new ArrayList<ASTNode>(); :}
+                ;
+
+stmt_list ::= stmt_list:sl stmt:s
+              {: sl.add(s); RESULT = sl; :}
+            | stmt:s
+              {: List<ASTNode> list = new ArrayList<>(); list.add(s); RESULT = list; :}
+            ;
+
+id_list ::= id_list:il COMMA ID:id
+            {: il.add(id); RESULT = il; :}
+          | ID:id
+            {: List<String> list = new ArrayList<>(); list.add(id); RESULT = list; :}
+          ;
+
+stmt ::= KW_INT ID:id ASSIGN expr:e SEMI
+         {: RESULT = new VarDeclNode(id, Type.INT, e, idleft, idright); :}
+       | ID:id ASSIGN expr:e SEMI
+         {: RESULT = new AssignNode(id, e, idleft, idright); :}
+       | ID:id1 COMMA id_list:rest ASSIGN ID:name LPAREN opt_arg_list:args RPAREN SEMI
+         {:
+            List<String> targets = new ArrayList<>();
+            targets.add(id1);
+            targets.addAll(rest);
+            FuncCallNode call = new FuncCallNode(name, args, nameleft, nameright);
+            RESULT = new TupleAssignNode(targets, call, id1left, id1right);
+         :}
+       | KW_ASSERT expr:e SEMI
+         {: RESULT = new AssertNode(e, eleft, eright); :}
+       | KW_ASSUME expr:e SEMI
+         {: RESULT = new AssumeNode(e, eleft, eright); :}
+       | ID:id LBRACKET expr:idx RBRACKET ASSIGN expr:e SEMI
+         {: RESULT = new ArrayAssignNode(id, idx, e, idleft, idright); :}
+       | KW_IF LPAREN expr:cond RPAREN LBRACE opt_stmt_list:then_b RBRACE
+         {: RESULT = new IfNode(cond, then_b, null, condleft, condright); :}
+       | KW_IF LPAREN expr:cond RPAREN LBRACE opt_stmt_list:then_b RBRACE KW_ELSE LBRACE opt_stmt_list:else_b RBRACE
+         {: RESULT = new IfNode(cond, then_b, else_b, condleft, condright); :}
+       | KW_WHILE LPAREN expr:cond RPAREN opt_invariant:inv LBRACE opt_stmt_list:body RBRACE
+         {: RESULT = new WhileNode(cond, inv, body, condleft, condright); :}
+       ;
+
+expr ::= expr:e1 KW_OR expr:e2     {: RESULT = new BinaryOpNode("or", e1, e2, e1left, e1right); :}
+       | expr:e1 KW_AND expr:e2    {: RESULT = new BinaryOpNode("and", e1, e2, e1left, e1right); :}
+       | KW_NOT expr:e             {: RESULT = new UnaryOpNode("not", e, eleft, eright); :}
+       | MINUS expr:e              {: RESULT = new UnaryOpNode("-", e, eleft, eright); :} %prec UMINUS
+       | expr:e1 PLUS expr:e2      {: RESULT = new BinaryOpNode("+", e1, e2, e1left, e1right); :}
+       | expr:e1 MINUS expr:e2     {: RESULT = new BinaryOpNode("-", e1, e2, e1left, e1right); :}
+       | expr:e1 STAR expr:e2      {: RESULT = new BinaryOpNode("*", e1, e2, e1left, e1right); :}
+       | expr:e1 SLASH expr:e2     {: RESULT = new BinaryOpNode("/", e1, e2, e1left, e1right); :}
+       | expr:e1 PERCENT expr:e2   {: RESULT = new BinaryOpNode("%", e1, e2, e1left, e1right); :}
+       | expr:e1 EQ expr:e2        {: RESULT = new BinaryOpNode("==", e1, e2, e1left, e1right); :}
+       | expr:e1 NEQ expr:e2       {: RESULT = new BinaryOpNode("!=", e1, e2, e1left, e1right); :}
+       | expr:e1 LT expr:e2        {: RESULT = new BinaryOpNode("<", e1, e2, e1left, e1right); :}
+       | expr:e1 LEQ expr:e2       {: RESULT = new BinaryOpNode("<=", e1, e2, e1left, e1right); :}
+       | expr:e1 GT expr:e2        {: RESULT = new BinaryOpNode(">", e1, e2, e1left, e1right); :}
+       | expr:e1 GEQ expr:e2       {: RESULT = new BinaryOpNode(">=", e1, e2, e1left, e1right); :}
+       | LPAREN expr:e RPAREN      {: RESULT = e; :}
+       | INT_LIT:val               {: RESULT = new IntLitNode(val, valleft, valright); :}
+       | KW_TRUE:t                 {: RESULT = new BoolLitNode(true, tleft, tright); :}
+       | KW_FALSE:f                {: RESULT = new BoolLitNode(false, fleft, fright); :}
+       | ID:id                     {: RESULT = new VarNode(id, idleft, idright); :}
+       | ID:id LBRACKET expr:idx RBRACKET {: RESULT = new ArrayAccessNode(id, idx, idleft, idright); :}
+       | ID:name LPAREN opt_arg_list:args RPAREN {: RESULT = new FuncCallNode(name, args, nameleft, nameright); :}
+       | KW_LENGTH LPAREN expr:e RPAREN {: RESULT = new FuncCallNode("length", Collections.singletonList(e), eleft, eright); :}
+       ;
+
+opt_arg_list ::= arg_list:al {: RESULT = al; :}
+               | /* пусто */ {: RESULT = new ArrayList<ASTNode>(); :}
+               ;
+
+arg_list ::= arg_list:al COMMA expr:e
+             {: al.add(e); RESULT = al; :}
+           | expr:e
+             {: List<ASTNode> list = new ArrayList<>(); list.add(e); RESULT = list; :}
+           ;

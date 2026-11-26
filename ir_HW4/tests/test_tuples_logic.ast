@@ -1,0 +1,57 @@
+Program:
+  FunctionDeclNode: pair
+    Params:
+      VarDecl: a : INT
+      VarDecl: b : INT
+    Returns:
+      VarDecl: x : INT
+      VarDecl: y : INT
+    Uses:
+    Body:
+      Assign: x
+        UnaryOp (-) [INT]
+          Var (a) [INT]
+      Assign: y
+        BinaryOp (+) [INT]
+          Var (b) [INT]
+          IntLit (1) [INT]
+  FunctionDeclNode: main
+    Params:
+      VarDecl: n : INT
+    Requires:
+      BinaryOp (and) [BOOL]
+        BinaryOp (>=) [BOOL]
+          Var (n) [INT]
+          IntLit (0) [INT]
+        BoolLit (true) [BOOL]
+    Returns:
+      VarDecl: r : INT
+    Uses:
+      VarDecl: u : INT
+      VarDecl: v : INT
+    Body:
+      TupleAssign (u, v)
+        FuncCall: pair [(INT, INT)]
+          Var (n) [INT]
+          IntLit (2) [INT]
+      While:
+        Cond:
+          BinaryOp (and) [BOOL]
+            UnaryOp (not) [BOOL]
+              BinaryOp (==) [BOOL]
+                Var (u) [INT]
+                IntLit (0) [INT]
+            BinaryOp (>) [BOOL]
+              Var (v) [INT]
+              IntLit (0) [INT]
+        Invariant:
+          BinaryOp (>=) [BOOL]
+            Var (v) [INT]
+            IntLit (0) [INT]
+        Body:
+          Assign: u
+            IntLit (0) [INT]
+      Assign: r
+        BinaryOp (+) [INT]
+          Var (u) [INT]
+          Var (v) [INT]

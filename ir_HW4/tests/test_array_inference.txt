@@ -1,0 +1,4 @@
+f() returns r: int uses a {
+    a[0] = 42;
+    r = length(a);
+}

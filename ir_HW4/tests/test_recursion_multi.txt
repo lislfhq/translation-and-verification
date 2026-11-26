@@ -1,0 +1,11 @@
+fact(n: int) returns r: int {
+    if (n <= 1) {
+        r = 1;
+    } else {
+        r = n * fact(n - 1);
+    }
+}
+
+main(k: int) returns res: int {
+    res = fact(k);
+}

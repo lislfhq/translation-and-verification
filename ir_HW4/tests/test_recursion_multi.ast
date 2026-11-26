@@ -1,0 +1,34 @@
+Program:
+  FunctionDeclNode: fact
+    Params:
+      VarDecl: n : INT
+    Returns:
+      VarDecl: r : INT
+    Uses:
+    Body:
+      If:
+        Condition:
+          BinaryOp (<=) [BOOL]
+            Var (n) [INT]
+            IntLit (1) [INT]
+        ThenBody:
+          Assign: r
+            IntLit (1) [INT]
+        ElseBody:
+          Assign: r
+            BinaryOp (*) [INT]
+              Var (n) [INT]
+              FuncCall: fact [INT]
+                BinaryOp (-) [INT]
+                  Var (n) [INT]
+                  IntLit (1) [INT]
+  FunctionDeclNode: main
+    Params:
+      VarDecl: k : INT
+    Returns:
+      VarDecl: res : INT
+    Uses:
+    Body:
+      Assign: res
+        FuncCall: fact [INT]
+          Var (k) [INT]

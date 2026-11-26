@@ -1,0 +1,14 @@
+Program:
+  FunctionDeclNode: f
+    Params:
+    Returns:
+      VarDecl: r : INT
+    Uses:
+      VarDecl: a : INT_ARRAY
+    Body:
+      ArrayAssign (a)
+        IntLit (0) [INT]
+        IntLit (42) [INT]
+      Assign: r
+        FuncCall: length [INT]
+          Var (a) [INT_ARRAY]
