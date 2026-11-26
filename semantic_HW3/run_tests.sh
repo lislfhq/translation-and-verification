@@ -55,6 +55,7 @@ run_pos tests/test_contracts.txt tests/test_contracts.ast
 run_pos tests/test_recursion_multi.txt tests/test_recursion_multi.ast
 run_pos tests/test_arrays.txt tests/test_arrays.ast
 run_pos tests/test_tuples_logic.txt tests/test_tuples_logic.ast
+run_pos tests/test_array_inference.txt tests/test_array_inference.ast
 
 run_neg tests/test_neg_readonly.txt 1 "[2:5]" "неизменяем"
 run_neg tests/test_neg_contracts_scope.txt 2 "[1:23]" "[1:53]"

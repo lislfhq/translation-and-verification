@@ -13,7 +13,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         this.currentScope = new Scope(null);
         this.errors = new ArrayList<>();
 
-        // Встроенная функция length: (int[]) -> (int)
         currentScope.define(new SymbolInfo(
                 "length",
                 Type.INT,
@@ -152,7 +151,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
     }
 
-    // Общая проверка вызова функции; возвращает SymbolInfo при успехе или null при ошибке
     private SymbolInfo checkCallArguments(FuncCallNode node) {
         boolean hasArgError = false;
         if (node.args != null) {
@@ -212,6 +210,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         if (sym.returnTypes != null && sym.returnTypes.size() == 1) {
+            node.resultTypes = new ArrayList<>(sym.returnTypes);
             node.exprType = sym.returnTypes.get(0);
         } else {
             reportError(node.line, node.column,
@@ -232,8 +231,12 @@ public class SemanticAnalyzer implements ASTVisitor {
             reportError(node.line, node.column,
                     "Несоответствие числа возвращаемых значений при кортежном присваивании: функция '" + node.call.name
                             + "' возвращает " + retTypes.size() + ", а переменных слева " + node.targets.size());
+            node.call.exprType = Type.ERROR;
             return;
         }
+
+        node.call.resultTypes = new ArrayList<>(retTypes);
+        node.call.exprType = (retTypes.size() == 1) ? retTypes.get(0) : Type.TUPLE;
 
         for (int i = 0; i < node.targets.size(); i++) {
             assignToTarget(node.targets.get(i), retTypes.get(i), node.line, node.column);
@@ -462,6 +465,12 @@ public class SemanticAnalyzer implements ASTVisitor {
         return null;
     }
 
+    private Type getArrayTypeFromElement(Type elemType) {
+        if (elemType == Type.INT) return Type.INT_ARRAY;
+        if (elemType == Type.BOOL) return Type.BOOL_ARRAY;
+        return null;
+    }
+
     @Override
     public void visit(ArrayAccessNode node) {
         visitNode(node.indexExpr);
@@ -500,8 +509,12 @@ public class SemanticAnalyzer implements ASTVisitor {
         visitNode(node.indexExpr);
         visitNode(node.valueExpr);
 
-        if (node.indexExpr.exprType != Type.INT && node.indexExpr.exprType != Type.ERROR) {
-            reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
+        boolean hasIndexError = false;
+        if (node.indexExpr.exprType != Type.INT) {
+            if (node.indexExpr.exprType != Type.ERROR) {
+                reportError(node.indexExpr.line, node.indexExpr.column, "Индекс массива должен быть типа INT.");
+            }
+            hasIndexError = true;
         }
 
         SymbolInfo sym = currentScope.resolve(node.arrayName);
@@ -515,6 +528,23 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         if (!sym.isMutable) {
             reportError(node.line, node.column, "Входной параметр-массив '" + node.arrayName + "' неизменяем (read-only).");
+            return;
+        }
+
+        if (sym.type == Type.UNKNOWN) {
+            Type valType = node.valueExpr.exprType;
+            if (!hasIndexError && valType != Type.ERROR && valType != Type.UNKNOWN) {
+                Type inferredArrayType = getArrayTypeFromElement(valType);
+                if (inferredArrayType != null) {
+                    sym.type = inferredArrayType;
+                    if (sym.declNode != null) {
+                        sym.declNode.declaredType = inferredArrayType;
+                    }
+                } else {
+                    reportError(node.line, node.column,
+                            "Невозможно вывести тип массива '" + node.arrayName + "' из значения типа " + valType + ".");
+                }
+            }
             return;
         }
 

@@ -6,6 +6,7 @@ public enum Type {
     INT_ARRAY,
     BOOL_ARRAY,
     STRING,
+    TUPLE,
     VOID,
     FUNC,
     UNKNOWN,

@@ -161,8 +161,6 @@ stmt ::= KW_INT ID:id ASSIGN expr:e SEMI
          {: RESULT = new AssertNode(e, eleft, eright); :}
        | KW_ASSUME expr:e SEMI
          {: RESULT = new AssumeNode(e, eleft, eright); :}
-       | KW_RETURNS expr:e SEMI
-         {: RESULT = new ReturnNode(e, eleft, eright); :}
        | ID:id LBRACKET expr:idx RBRACKET ASSIGN expr:e SEMI
          {: RESULT = new ArrayAssignNode(id, idx, e, idleft, idright); :}
        | KW_IF LPAREN expr:cond RPAREN LBRACE opt_stmt_list:then_b RBRACE

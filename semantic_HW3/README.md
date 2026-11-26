@@ -57,3 +57,29 @@
 1. **Очистка сгенерированных и скомпилированных файлов** *(эталонные `tests/*.ast` сохраняются)*:
 ```bash
 make clean
+```
+
+2. **Полная компиляция:**
+
+```bash
+make compile
+```
+
+3. **Запуск всех позитивных и негативных тестов:**
+
+```bash
+make test
+```
+
+4. **Перегенерация эталонных .ast снимков для позитивных тестов:**
+
+```bash
+make snapshots
+```
+
+5. **Ручной запуск на отдельном файле:**
+
+```bash
+java -cp "lib/java-cup-11b.jar:src" Main tests/test_positive.txt
+java -cp "lib/java-cup-11b.jar:src" Main tests/test_positive.txt tests/test_positive.ast
+```
